@@ -49,27 +49,37 @@ def pregnancy(name, index_date, type):
   if type == "value": between = [days(index_date, -252), days(index_date, -1)]
   if type == "column": between = [f"{index_date} - 252 days", f"{index_date} - 1 day"]
 
+  def tmp_preg(name, between):
+    return {
+      # date of last pregnancy code in 36 weeks before index_date
+      f"{name}_36wks_date": patients.with_these_clinical_events(
+        preg_primis,
+        returning = "date",
+        find_last_match_in_period = True,
+        between = between,
+        date_format = "YYYY-MM-DD",
+      )
+    }
+  
+  def tmp_del(name, between):
+    return {
+      # date of last delivery code recorded in 36 weeks before index_date
+      f"{name}_del_date": patients.with_these_clinical_events(
+        pregdel_primis,
+        returning = "date",
+        find_last_match_in_period = True,
+        between = between,
+        date_format = "YYYY-MM-DD",
+      )
+    }
+
   return {
     name: patients.satisfying(
-        """
-        (preg_36wks_date AND NOT pregdel_date) OR
-        (preg_36wks_date AND pregdel_date AND (pregdel_date < preg_36wks_date))
+        f"""
+        ({name}_36wks_date AND NOT {name}_del_date) OR
+        ({name}_36wks_date AND {name}_del_date AND ({name}_del_date < {name}_36wks_date))
         """,
-        # date of last pregnancy code in 36 weeks before index_date
-        preg_36wks_date = patients.with_these_clinical_events(
-            preg_primis,
-            returning = "date",
-            find_last_match_in_period = True,
-            between = between,
-            date_format = "YYYY-MM-DD",
-        ),
-        # date of last delivery code recorded in 36 weeks before index_date
-        pregdel_date = patients.with_these_clinical_events(
-            pregdel_primis,
-            returning = "date",
-            find_last_match_in_period = True,
-            between = between,
-            date_format = "YYYY-MM-DD",
-        ),
+      **tmp_preg(name, between),
+      **tmp_del(name, between)
     ),
   }
