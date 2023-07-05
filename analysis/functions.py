@@ -80,6 +80,7 @@ def pregnancy(name, index_date, type):
         ({name}_36wks_date AND {name}_del_date AND ({name}_del_date < {name}_36wks_date))
         """,
       **tmp_preg(name, between),
-      **tmp_del(name, between)
+      **tmp_del(name, between),
+      return_expectations = {"incidence": 0.05},
     ),
   }
