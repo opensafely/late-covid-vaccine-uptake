@@ -15,6 +15,13 @@ import json
 import pandas as pd
 
 ### import groups and dates
+# atrisk_group
+atrisk_group = pd.read_csv(
+    filepath_or_buffer='./analysis/lib/atrisk_group.csv',
+    dtype=str
+)
+str_atrisk = atrisk_group['atrisk_group'][0]
+
 # jcvi_groups
 jcvi_groups = pd.read_csv(
     filepath_or_buffer='./analysis/lib/jcvi_groups.csv',
@@ -138,6 +145,7 @@ elig_variables = dict(
             returning = "binary_flag",
             between = [days(ref_ar, -91), days(ref_ar, -62)],
         ),
+        return_expectations={"incidence": 0.1},
     ),
 
     # chronic respiratory disease other than asthma
@@ -331,22 +339,9 @@ elig_variables = dict(
 
     # at risk group
     atrisk_group=patients.satisfying(
-         """
-         immuno_group OR
-         ckd_group OR
-         resp_group OR
-         asthma_group OR
-         diab_group OR
-         cld_group OR
-         cns_group OR
-         chd_group OR
-         spln_group OR
-         learndis_group OR
-         sevment_group OR
-         sevobese_group 
-        """,
+        str_atrisk,
         return_expectations = {
-        "incidence": 0.01,
+        "incidence": 0.1,
         },
     ),
 
