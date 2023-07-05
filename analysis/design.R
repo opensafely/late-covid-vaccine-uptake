@@ -34,6 +34,25 @@ study_parameters %>%
     )
 
 ################################################################################
+# at risk group definition ----
+atrisk_group <- "immuno_group OR
+                 ckd_group OR
+                 resp_group OR
+                 asthma_group OR
+                 diab_group OR
+                 cld_group OR
+                 cns_group OR
+                 chd_group OR
+                 spln_group OR
+                 learndis_group OR
+                 sevment_group OR
+                 sevobese_group" 
+atrisk_group <- str_replace_all(str_remove_all(atrisk_group, "\\n"), "\\s+", " ")
+
+tibble(atrisk_group = atrisk_group) %>%
+  readr::write_csv(here::here("analysis", "lib", "atrisk_group.csv"))
+
+################################################################################
 # create jcvi_groups ----
 jcvi_groups <- 
 tribble(
@@ -100,7 +119,7 @@ tribble(
     # "2021-06-15", "age_2 >= 23 AND age_2 < 25", "12",
     # "2021-06-16", "age_2 >= 21 AND age_2 < 23", "12",
     # "2021-06-18", "age_2 >= 18 AND age_2 < 21", "12",
-    "2100-12-31", "DEFAULT", "NA",
+    "2100-12-31", "DEFAULT", "DEFAULT",
 ) 
 
 readr::write_csv(elig_dates, here::here("analysis", "lib", "elig_dates.csv"))
