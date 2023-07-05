@@ -33,7 +33,7 @@ study=StudyDefinition(
     default_expectations = {
         "date": {"earliest": "2020-01-01", "latest": "2021-12-31"},
         "rate": "uniform",
-        "incidence": 0.8,
+        "incidence": 0.9,
     },
 
     ##########################
@@ -49,17 +49,18 @@ study=StudyDefinition(
     population = patients.satisfying(
         """
         has_follow_up = 1
-        AND
-        NOT died_before
+        AND NOT died_before
+        AND age_2 >= 18
+        AND age_2 < 120
         """,
         has_follow_up = patients.registered_with_one_practice_between(
-            start_date = "elig_date - 1 year",
-            end_date = "elig_date - 1 day",
-            return_expectations = {"incidence": 0.90},
+            start_date = "2020-03-01",
+            end_date = "2021-12-17", # 26 weeks after 18-year-olds became eligible for 1st dose
         ),
         died_before = patients.died_from_any_cause(
             on_or_before = "elig_date - 1 day",
             returning = "binary_flag",
+            return_expectations = {"incidence": 0.01},
         ),
     ),
 
@@ -157,21 +158,14 @@ study=StudyDefinition(
         date_format = "YYYY-MM-DD",
         on_or_after = study_parameters["start_date"],
         find_first_match_in_period = True,
-        return_expectations = {
-            "incidence": 0.01
-        },
+        return_expectations = { "incidence": 0.01},
     ),
 
     # any death
     death_date=patients.died_from_any_cause(
         returning="date_of_death",
         date_format="YYYY-MM-DD",
-    ),
-
-    # de-registration
-    dereg_date=patients.date_deregistered_from_all_supported_practices(
-        on_or_after="elig_date",
-        date_format="YYYY-MM-DD",
+        return_expectations = { "incidence": 0.01},
     ),
 
     ##########################
