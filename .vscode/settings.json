@@ -10,5 +10,13 @@
     "files.autoSaveDelay": 1000,
     "window.autoDetectColorScheme": true,
     "extensions.ignoreRecommendations": true,
-    "data.preview.theme": "light"  
+    "data.preview.theme": "light",
+    "zenMode.centerLayout": false,
+    "zenMode.fullScreen": false,
+    "zenMode.hideActivityBar": false,
+    "zenMode.hideLineNumbers": false,
+    "zenMode.hideStatusBar": false,
+    "zenMode.hideTabs": false,
+    "zenMode.restore": false,
+    "zenMode.silentNotifications": false
 }
