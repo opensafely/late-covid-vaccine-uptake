@@ -1,13 +1,12 @@
 library(tidyverse)
 library(here)
-library(gtsummary)
+library(gtsummary) # package for creating nice tables
 
 source(here::here("analysis", "functions", "utility.R"))
 
 data_processed <- read_rds(here("output", "extract", "data_processed.rds"))
 
 # create a summary table of age_2 and sex
-
 table1 <- data_processed %>%
   tbl_summary(
     # specify the columns to summarise
