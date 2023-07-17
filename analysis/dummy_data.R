@@ -33,10 +33,7 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")) {
     collapse = "; "
   )
   
-  pop_ages <- extract %>% filter(between(age_1, 18, 119)) %>% pull(age_1)
-  
   dummy_data <- extract %>%
-    mutate(across(age_1, ~ sample(pop_ages, size = nrow(extract), replace = TRUE))) %>%
     # age_2 same as age_1
     mutate(across(age_2, ~ age_1)) %>%
     # make sure vaccine dates are sensible:
