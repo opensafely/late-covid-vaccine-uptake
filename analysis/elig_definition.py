@@ -353,9 +353,9 @@ elig_variables = dict(
         return_expectations = {"incidence": 0.01},
     ),
 
-    # check if pregnant on each of the reference dates
-    **pregnancy("preg_cev_group", ref_cev, type = "value"),
-    **pregnancy("preg_ar_group", ref_ar, type = "value"),
+    # # check if pregnant on each of the reference dates
+    # **pregnancy("preg_cev_group", ref_cev, type = "value"),
+    # **pregnancy("preg_ar_group", ref_ar, type = "value"),
 
     # derive JCVI group
     jcvi_group = patients.categorised_as(
