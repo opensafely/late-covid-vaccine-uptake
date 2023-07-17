@@ -11,12 +11,14 @@ library(glue)
 # create lib directory ----
 fs::dir_create(here::here("analysis", "lib"))
 
+# threshold for midpoint rounding
+threshold <- 6
+
 ################################################################################
 # create study_parameters ----
 study_parameters <-
   lst(
     seed = 123456L,
-    n = 100000L, # number of individuals in dummy data
     ref_age_1 = "2021-03-31", # reference date for calculating age for phase 1 groups
     ref_age_2 = "2021-07-01", # reference date for calculating age for phase 2 groups
     ref_cev = "2021-01-18", # reference date for calculating eligibility for phase 1 group 4 (CEV)
