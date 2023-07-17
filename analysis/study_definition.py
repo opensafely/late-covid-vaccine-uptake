@@ -46,24 +46,14 @@ study=StudyDefinition(
     # ### POPULATION ###
     # ##################
 
-    population = patients.satisfying(
-        """
-        has_follow_up = 1
-        AND NOT died_before
-        AND age_2 >= 18
-        AND age_2 < 120
-        """,
-        has_follow_up = patients.registered_with_one_practice_between(
-            start_date = "2020-03-01",
-            end_date = "2021-12-17", # 26 weeks after 18-year-olds became eligible for 1st dose
-        ),
-        died_before = patients.died_from_any_cause(
-            on_or_before = "elig_date - 1 day",
-            returning = "binary_flag",
-            return_expectations = {"incidence": 0.01},
-        ),
-    ),
+    # extract all for consort diagram
+    population = patients.all(),
 
+    has_follow_up = patients.registered_with_one_practice_between(
+            start_date = "2020-01-01", # start of 2020 
+            end_date = "elig_date - 1 day", 
+        ),
+    
     ######################
     ### COVID VACCINES ###
     ######################
@@ -76,9 +66,9 @@ study=StudyDefinition(
         target_disease_matches="SARS-2 CORONAVIRUS"
     ),
 
-    # #############################
-    # ### DEMOGRAPHIC VARIABLES ###
-    # #############################
+    #############################
+    ### DEMOGRAPHIC VARIABLES ###
+    #############################
 
     # STATIC
     # patient sex
@@ -103,14 +93,6 @@ study=StudyDefinition(
             "incidence": 0.99
         },
     ),
-
-    # ELIGIBILITY DATE
-    # pregnancy
-    **pregnancy(name = "preg_elig_group", index_date = "elig_date", type = "column"),
-    # extract first pregnancy code after elig date
-    # preg_after_elig_date
-    # extract first delivery code after elig date
-    # preg_del_after_elig_date
 
     # ethnicity (6 categories)
     ethnicity = patients.categorised_as(
@@ -150,17 +132,6 @@ study=StudyDefinition(
         },
     ),
 
-    # patients in long-stay nursing and residential care
-    # any time after start_date (indicator for before start_date in elig_definition)
-    longres_date = patients.with_these_clinical_events(
-        longres_primis,
-        returning = "date",
-        date_format = "YYYY-MM-DD",
-        on_or_after = study_parameters["start_date"],
-        find_first_match_in_period = True,
-        return_expectations = { "incidence": 0.01},
-    ),
-
     # any death
     death_date=patients.died_from_any_cause(
         returning="date_of_death",
@@ -168,12 +139,35 @@ study=StudyDefinition(
         return_expectations = { "incidence": 0.01},
     ),
 
-    ##########################
-    ### CLINICAL VARIABLES ###
-    ##########################
+    dereg_date=patients.date_deregistered_from_all_supported_practices(
+        on_or_after="elig_date",
+        date_format="YYYY-MM-DD",
+        return_expectations = {"incidence": 0.01},
+    ),
 
-    # new shielding flag after ref_cev date
-    # new nonshielding flag after ref_cev date
-    # new diagnoses of at-risk group conditions after ref_ar date
+    ## IMD - quintile
+    imd_Q5=patients.categorised_as(
+        {
+          "Unknown": "DEFAULT",
+          "1 (most deprived)": "imd >= 0 AND imd < 32844*1/5",
+          "2": "imd >= 32844*1/5 AND imd < 32844*2/5",
+          "3": "imd >= 32844*2/5 AND imd < 32844*3/5",
+          "4": "imd >= 32844*3/5 AND imd < 32844*4/5",
+          "5 (least deprived)": "imd >= 32844*4/5 AND imd <= 32844",
+        },
+        return_expectations={
+          "rate": "universal",
+          "category": {"ratios": {"Unknown": 0.02, "1 (most deprived)": 0.18, "2": 0.2, "3": 0.2, "4": 0.2, "5 (least deprived)": 0.2}},
+        },
+        imd=patients.address_as_of(
+          "elig_date - 1 day",
+          returning="index_of_multiple_deprivation",
+          round_to_nearest=100,
+          return_expectations={
+          "category": {"ratios": {c: 1/320 for c in range(100, 32100, 100)}}
+          }
+        ),
+    ),
+
 
 )
