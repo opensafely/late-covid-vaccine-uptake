@@ -132,3 +132,7 @@ regions <- tribble(
 )
 
 readr::write_csv(regions, here::here("analysis", "lib", "regions.csv"))
+
+################################################################################
+ethnicity_levels <- c("White", "Black or Black British", "Asian or Asian British", "Mixed", "Other", "Unknown")
+imd_Q5_levels <- c("1 (most deprived)", "2", "3", "4", "5 (least deprived)")
