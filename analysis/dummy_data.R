@@ -53,7 +53,9 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")) {
     mutate(across(jcvi_group, ~ case_when(!!! parse_exprs(jcvi_groups_r)))) %>%
     mutate(across(jcvi_group, ~ factor(.x, levels = levels(extract$jcvi_group)))) %>%
     # derive eligibility date
-    mutate(across(elig_date, ~ as.POSIXct(case_when(!!! parse_exprs(elig_dates_r)))))
+    mutate(across(elig_date, ~ as.POSIXct(case_when(!!! parse_exprs(elig_dates_r))))) %>%
+    # make corrections to dereg_date
+    mutate(across(dereg_date, ~ if_else(.x < elig_date, as.POSIXct(NA_character_), .x)))
   
     arrow::write_feather(
       dummy_data,
