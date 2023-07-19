@@ -37,9 +37,10 @@ extract %>% my_skim(path = file.path(dir_path, "skim_extract.txt"))
 data_processed <- extract %>%
   # because date types are not returned consistently by cohort extractor
   mutate(across(ends_with("_date"), ~ as.Date(.))) %>%
+  # define factor levels
   mutate(
     jcvi_group = factor(jcvi_group, levels = jcvi_groups$group),
-    sex = factor(sex, levels = "F", "M"),
+    sex = factor(sex, levels = sex_levels),
     region = factor(region, levels = regions$region),
     ethnicity = factor(ethnicity, levels = ethnicity_levels),
     imd_Q5 = factor(imd_Q5, levels = imd_Q5_levels)
