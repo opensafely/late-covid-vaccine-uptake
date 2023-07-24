@@ -128,7 +128,7 @@ data_vax_counts %>%
   left_join(data_count_date_rank, by = c("elig_date", "jcvi_group")) %>%
   ggplot(aes(x = days_between, y = n, color = elig_date_rank)) +
   geom_line() +
-  facet_wrap(~jcvi_group) +
+  facet_wrap(~jcvi_group, scales = "free_y") +
   scale_color_viridis_d() +
   theme_minimal() +
   labs(title = "Distribution of covid_vax_disease_1_date across different eligibility dates",
