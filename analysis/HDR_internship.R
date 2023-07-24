@@ -1,4 +1,6 @@
-# Load libraries
+# Setup ------------------------------------------------------------------------
+
+# Load libraries 
 library(lubridate)
 library(purrr)
 library(gtsummary)
@@ -19,16 +21,18 @@ source(here("analysis", "functions", "utility.R"))
 data_eligible <- readRDS(here("output", "extract", "data_eligible.rds"))
 
 # Summary of the data
-summary(data_eligible)
+# summary(data_eligible)
 
-# Create covid_vax_disease_1_time which is the days between elig_date and covid_vax_disease_1_date
+# Process data ----------------------------------------------------------------
 data_eligible <- data_eligible %>%
-  mutate(covid_vax_disease_1_time = as.integer(difftime(covid_vax_disease_1_date, elig_date, units = "days")))
-
-# Death_date and dereg_date (i.e. time since elig_date)
-data_eligible <- data_eligible %>%
-  mutate(death_time = as.numeric(difftime(death_date, elig_date, units = "days")),
-         dereg_time = as.numeric(difftime(dereg_date, elig_date, units = "days")))
+  mutate(
+    # Create *_time which is the days between elig_date and *_date
+    covid_vax_disease_1_time = as.integer(difftime(covid_vax_disease_1_date, elig_date, units = "days")),
+    death_time = as.integer(difftime(death_date, elig_date, units = "days")),
+    dereg_time = as.integer(difftime(dereg_date, elig_date, units = "days"))
+    ) %>%
+  # replace times > 182 days (26 weeks) with NA, as this is the end of follow-up
+  mutate(across(ends_with("_time"), ~if_else(.x <= 26*7, .x, NA_integer_)))
 
 # Check for negative times
 cat("\nCheck for negative values (should be 0):\n")
@@ -36,10 +40,6 @@ cat("\n`death_time`:\n")
 sum(data_eligible$death_time < 0, na.rm = TRUE) # should be 0
 cat("\n`dereg_time`:\n")
 sum(data_eligible$dereg_time < 0, na.rm = TRUE) # should be 0
-
-# TODO Task 1
-# replace any times > 182 days (26 weeks) with NA, as this is the end of follow-up
-# (do this for covid_vax_disease_1_time, death_time, dereg_time)
 
 # Derive a variable that corresponds to the rank of elig_date within jcvi_group
 data_elig_date_rank <- data_eligible %>%
@@ -49,9 +49,16 @@ data_elig_date_rank <- data_eligible %>%
   mutate(elig_date_rank = factor(rank(elig_date))) %>%
   ungroup()
 
-# Plot the distribution of covid_vax_disease_1_time across different eligibility dates
+# do the join here so we only have to do it once, becasue joins are slow
+data_eligible <- data_eligible %>%
+  left_join(data_elig_date_rank, by = c("elig_date", "jcvi_group"))
+
+rm(data_elig_date_rank)
+
+# Explore distribution of covid_vax_disease_1_time -----------------------------
+
+# Plot using geom_freqpoly()
 data_eligible %>%
-  left_join(data_elig_date_rank, by = c("elig_date", "jcvi_group")) %>%
   ggplot(aes(x = covid_vax_disease_1_time, y = after_stat(count), color = elig_date_rank)) +
   geom_freqpoly(binwidth = 1) +
   facet_wrap(~jcvi_group, scales = "free_y", ncol=4) +
@@ -62,31 +69,29 @@ data_eligible %>%
        x = "Days between eligibility and first vaccination",
        y = "Frequency",
        color = "Eligibility Date")
-
-# save
+# Save
 ggsave(file.path(outdir, "vax_dates_freqpoly.png"))
 
 # Create the data for replicating this plot locally
-
-# Create a new dataset with counts of individuals vaccinated on each day, grouped by jcvi_group and elig_date
+# Counts of individuals vaccinated on each day, grouped by jcvi_group and elig_date
 data_vax_counts <- data_eligible %>%
-  filter(!is.na(covid_vax_disease_1_date)) %>%
-  group_by(jcvi_group, elig_date, covid_vax_disease_1_date) %>%
+  # get rid of individuals who did not get vaccinated during follow-up
+  filter(!is.na(covid_vax_disease_1_time)) %>%
+  group_by(jcvi_group, elig_date, elig_date_rank, covid_vax_disease_1_time) %>%
   summarise(n = n(), .groups = "drop") %>%
   mutate(n = roundmid_any(n, to = threshold))  # Apply rounding to the counts
 
 # head(data_vax_counts)
 
 # Save to .csv file for release
-readr::write_csv(data_counts, file.path(outdir, glue("data_vax_counts_midpoint{threshold}.csv")))
+readr::write_csv(
+  data_vax_counts,
+  file.path(outdir, glue("data_vax_counts_midpoint{threshold}.csv"))
+  )
 
-# Create variable for the number of days between eligibility and vaccination
-data_vax_counts$days_between <- as.integer(data_vax_counts$covid_vax_disease_1_date - data_vax_counts$elig_date)
-
-# Plot the distribution of covid_vax_disease_1_time across different eligibility dates for the extracted dataset 
+# Plot using geom_line()
 data_vax_counts %>%
-  left_join(data_elig_date_rank, by = c("elig_date", "jcvi_group")) %>%
-  ggplot(aes(x = days_between, y = n, color = elig_date_rank)) +
+  ggplot(aes(x = covid_vax_disease_1_time, y = n, color = elig_date_rank)) +
   geom_line() +
   facet_wrap(~jcvi_group, scales = "free_y", nrow = 4) +
   scale_color_viridis_d() +
@@ -96,11 +101,11 @@ data_vax_counts %>%
        x = "Days between eligibility and first vaccination",
        y = "Frequency",
        color = "Eligibility Date")
-
+# Save
 ggsave(file.path(outdir, "vax_dates_line.png"))
 
 
-# Count how many patients there are in the imd subgroups by ethnicity
+# Count how many patients there are in the imd subgroups by ethnicity ----------
 data_imd_eth <- data_eligible %>%
   group_by(imd_Q5, ethnicity) %>%
   summarise(n = n(), .groups = "drop")
@@ -129,4 +134,7 @@ data_counts <- bind_rows(
   mutate(across(n, ~roundmid_any(.x, to = threshold)))
 
 # Save to .csv file for release
-readr::write_csv(data_counts, file.path(outdir, "group_counts.csv"))
+readr::write_csv(
+  data_counts, 
+  file.path(outdir, glue("group_counts_midpoint{threshold}.csv"))
+  )
