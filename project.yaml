@@ -44,7 +44,7 @@ actions:
         flowchart: output/extract/flowchart_*.csv
         
   exploratory_analysis:
-    run: r:latest analysis/HDR_internship.R
+    run: r:latest analysis/exploratory_analysis.R
     needs: 
     - process_extract
     outputs:
