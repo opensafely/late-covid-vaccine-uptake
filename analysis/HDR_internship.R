@@ -31,7 +31,10 @@ data_eligible <- data_eligible %>%
          dereg_time = as.numeric(difftime(dereg_date, elig_date, units = "days")))
 
 # Check for negative times
+cat("\nCheck for negative values (should be 0):\n")
+cat("\n`death_time`:\n")
 sum(data_eligible$death_time < 0, na.rm = TRUE) # should be 0
+cat("\n`dereg_time`:\n")
 sum(data_eligible$dereg_time < 0, na.rm = TRUE) # should be 0
 
 # TODO Task 1
@@ -49,18 +52,53 @@ data_elig_date_rank <- data_eligible %>%
 # Plot the distribution of covid_vax_disease_1_time across different eligibility dates
 data_eligible %>%
   left_join(data_elig_date_rank, by = c("elig_date", "jcvi_group")) %>%
-  ggplot(aes(x = covid_vax_disease_1_time, color = elig_date_rank)) +
+  ggplot(aes(x = covid_vax_disease_1_time, y = after_stat(count), color = elig_date_rank)) +
   geom_freqpoly(binwidth = 1) +
-  facet_wrap(~jcvi_group) +
+  facet_wrap(~jcvi_group, scales = "free_y", ncol=4) +
   scale_color_viridis_d() +
   theme_minimal() +
+  theme(legend.position = "bottom") +
   labs(title = "Distribution of covid_vax_disease_1_time across different eligibility dates",
        x = "Days between eligibility and first vaccination",
        y = "Frequency",
        color = "Eligibility Date")
 
-# TODO Task 2
-# Create a dataset that can be used to replicate the plot outside of opensafely.
+# save
+ggsave(file.path(outdir, "vax_dates_freqpoly.png"))
+
+# Create the data for replicating this plot locally
+
+# Create a new dataset with counts of individuals vaccinated on each day, grouped by jcvi_group and elig_date
+data_vax_counts <- data_eligible %>%
+  filter(!is.na(covid_vax_disease_1_date)) %>%
+  group_by(jcvi_group, elig_date, covid_vax_disease_1_date) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  mutate(n = roundmid_any(n, to = threshold))  # Apply rounding to the counts
+
+# head(data_vax_counts)
+
+# Save to .csv file for release
+readr::write_csv(data_counts, file.path(outdir, glue("data_vax_counts_midpoint{threshold}.csv")))
+
+# Create variable for the number of days between eligibility and vaccination
+data_vax_counts$days_between <- as.integer(data_vax_counts$covid_vax_disease_1_date - data_vax_counts$elig_date)
+
+# Plot the distribution of covid_vax_disease_1_time across different eligibility dates for the extracted dataset 
+data_vax_counts %>%
+  left_join(data_elig_date_rank, by = c("elig_date", "jcvi_group")) %>%
+  ggplot(aes(x = days_between, y = n, color = elig_date_rank)) +
+  geom_line() +
+  facet_wrap(~jcvi_group, scales = "free_y", nrow = 4) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(title = "Distribution of covid_vax_disease_1_date across different eligibility dates",
+       x = "Days between eligibility and first vaccination",
+       y = "Frequency",
+       color = "Eligibility Date")
+
+ggsave(file.path(outdir, "vax_dates_line.png"))
+
 
 # Count how many patients there are in the imd subgroups by ethnicity
 data_imd_eth <- data_eligible %>%
@@ -92,57 +130,3 @@ data_counts <- bind_rows(
 
 # Save to .csv file for release
 readr::write_csv(data_counts, file.path(outdir, "group_counts.csv"))
-
-
-# TODO Task 3
-
-# Create a new dataset with counts of individuals vaccinated on each day, grouped by jcvi_group and elig_date
-data_vax_counts <- data_eligible %>%
-  group_by(jcvi_group, elig_date, covid_vax_disease_1_date) %>%
-  summarise(n = n(), .groups = "drop") %>%
-  mutate(n = roundmid_any(n, to = threshold))  # Apply rounding to the counts
-
-
-head(data_vax_counts)
-
-# Save to .csv file for release
-readr::write_csv(data_counts, file.path(outdir, "data_vax_counts.csv"))
-
-
-
-# Task 4 
-
-# Create variable for the number of days between eligibility and vaccination
-data_vax_counts$days_between <- as.integer(data_vax_counts$covid_vax_disease_1_date - data_vax_counts$elig_date)
-
-# Derive a variable that corresponds to the rank of elig_date within jcvi_group for extracted dataset
-data_count_date_rank <- data_vax_counts %>%
-  distinct(jcvi_group, elig_date) %>%
-  arrange(jcvi_group, elig_date) %>%
-  group_by(jcvi_group) %>%
-  mutate(elig_date_rank = factor(rank(elig_date))) %>%
-  ungroup()
-
-# Plot the distribution of covid_vax_disease_1_time across different eligibility dates for the extracted dataset 
-data_vax_counts %>%
-  left_join(data_count_date_rank, by = c("elig_date", "jcvi_group")) %>%
-  ggplot(aes(x = days_between, y = n, color = elig_date_rank)) +
-  geom_line() +
-  facet_wrap(~jcvi_group, scales = "free_y") +
-  scale_color_viridis_d() +
-  theme_minimal() +
-  labs(title = "Distribution of covid_vax_disease_1_date across different eligibility dates",
-       x = "Days between eligibility and first vaccination",
-       y = "Frequency",
-       color = "Eligibility Date")
-
-
-
-
-
-
-
-
-
-
-
