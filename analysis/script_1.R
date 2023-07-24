@@ -1,6 +1,3 @@
-#library(tidyverse)
-#library(here)
-
 # read data_eligible
 #data_eligible <- read_rds(here("output", "extract", "data_eligible.rds"))
 
@@ -16,7 +13,6 @@
 #   - imd_Q5 x ethnicity x region
 #   - imd_Q5 x ethnicity x jcvi_group
 
-
 # Load libraries
 library(arrow)
 library(dplyr)
@@ -26,6 +22,8 @@ library(purrr)
 library(gtsummary)
 library(ggplot2)
 library(viridis)
+library(here)
+
 
 
 # create output directory
@@ -37,8 +35,8 @@ source(here::here("analysis", "design.R"))
 source(here::here("analysis", "functions", "utility.R"))
 
 # Import the data 
-data_eligible <- readRDS(here::here("output", "extract", "data_eligible.rds"))
-
+#data_eligible <- readRDS(here::here("output", "extract", "data_eligible.rds"))
+data_eligible <- readRDS("~/late-covid-vaccine-uptake/output/extract/data_eligible.rds")
 
 # Sumarry of the data
 summary(data_eligible)
@@ -67,17 +65,15 @@ data_eligible <- data_eligible %>%
 sum(data_eligible$death_time < 0, na.rm = TRUE) # should be 0
 sum(data_eligible$dereg_time < 0, na.rm = TRUE) # should be 0
 
-# TODO Task 1
-# replace any times > 182 days (26 weeks) with NA, as this is the end of follow-up
-# (do this for covid_vax_disease_1_time, death_time, dereg_time)
 
-  
+
 # Plot the distribution of covid_vax_disease_1_time across different eligibility dates
-
-# first, derive a variable that corresponds to the rank of elig_date within jcvi_group
-# this will make it easier to plot  with a nice colour scheme
-# in the plot we don't need to know what the eligibility date is, 
-# we just want to make sure we can distinguish between them
+ggplot(data_eligible, aes(x = covid_vax_disease_1_time, color = elig_date)) +
+  
+  # first, derive a variable that corresponds to the rank of elig_date within jcvi_group
+  # this will make it easier to plot  with a nice colour scheme
+  # in the plot we don't need to know what the eligibility date is, 
+  # we just want to make sure we can distinguish between them
 data_elig_date_rank <- data_eligible %>%
   distinct(jcvi_group, elig_date) %>%
   arrange(jcvi_group, elig_date) %>%
@@ -114,21 +110,48 @@ data_eligible %>%
 
 
 # imd_Q5 x ethnicity
+
+data_eligible %>%
 data_imd_eth <- data_eligible %>%
   group_by(imd_Q5, ethnicity) %>%
   summarise(n = n(), .groups = "drop")
 
 # imd_Q5 x ethnicity x sex
+
+data_eligible %>%
 data_imd_eth_sex <- data_eligible %>%
   group_by(imd_Q5, ethnicity, sex) %>%
   summarise(n = n(), .groups = "drop")
 
 # imd_Q5 x ethnicity x region
+
+data_eligible %>%
 data_imd_eth_reg <- data_eligible %>%
   group_by(imd_Q5, ethnicity, region) %>%
   summarise(n = n(), .groups = "drop")
 
 # imd_Q5 x ethnicity x jcvi_group
+
+data_eligible %>%
+  group_by(imd_Q5, ethnicity, jcvi_group) %>%
+  summarise(n = n(), .groups = "drop")
+
+
+### alternative try
+# imd_Q5 x ethnicity
+table1 <- data_eligible %>%
+  tbl_cross(row = imd_Q5, col = ethnicity, sex)
+table1
+# imd_Q5 x ethnicity x sex
+table2 <- data_eligible %>%
+  tbl_cross(row = imd_Q5, col = list(ethnicity, sex))
+table2
+
+# imd_Q5 x ethnicity x region
+table3 <- data_eligible %>%
+  tbl_cross(row = imd_Q5, col = list(ethnicity, region))
+table3
+
 data_imd_eth_jcvi <- data_eligible %>%
   group_by(imd_Q5, ethnicity, jcvi_group) %>%
   summarise(n = n(), .groups = "drop")
@@ -167,4 +190,3 @@ data_counts %>%
 # table3 <- data_eligible %>%
 #   tbl_cross(row = imd_Q5, col = list(ethnicity, region))
 # table3
-
