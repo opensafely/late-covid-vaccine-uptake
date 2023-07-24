@@ -1,6 +1,3 @@
-# Set the work directory 
-setwd("C:/Users/Femi/Documents/late-covid-vaccine-uptake")
-getwd()
 # Load libraries
 library(lubridate)
 library(purrr)
@@ -15,19 +12,18 @@ outdir <- here("output", "exploratory")
 fs::dir_create(outdir)
 
 # Source metadata and functions
-source(here("late-covid-vaccine-uptake", "analysis", "design.R"))
-source(here("late-covid-vaccine-uptake", "analysis", "functions", "utility.R"))
+source(here("analysis", "design.R"))
+source(here("analysis", "functions", "utility.R"))
 
 # Import the data 
-data_eligible <- readRDS(here("late-covid-vaccine-uptake","output", "extract", "data_eligible.rds"))
-#data_eligible <- readRDS("~/late-covid-vaccine-uptake/output/extract/data_eligible.rds")
+data_eligible <- readRDS(here("output", "extract", "data_eligible.rds"))
 
 # Summary of the data
 summary(data_eligible)
 
 # Create covid_vax_disease_1_time which is the days between elig_date and covid_vax_disease_1_date
 data_eligible <- data_eligible %>%
-  mutate(covid_vax_disease_1_time = as.numeric(difftime(covid_vax_disease_1_date, elig_date, units = "days")))
+  mutate(covid_vax_disease_1_time = as.integer(difftime(covid_vax_disease_1_date, elig_date, units = "days")))
 
 # Death_date and dereg_date (i.e. time since elig_date)
 data_eligible <- data_eligible %>%
@@ -111,5 +107,42 @@ head(data_vax_counts)
 
 # Save to .csv file for release
 readr::write_csv(data_counts, file.path(outdir, "data_vax_counts.csv"))
+
+
+
+# Task 4 
+
+# Create variable for the number of days between eligibility and vaccination
+data_vax_counts$days_between <- as.integer(data_vax_counts$covid_vax_disease_1_date - data_vax_counts$elig_date)
+
+# Derive a variable that corresponds to the rank of elig_date within jcvi_group for extracted dataset
+data_count_date_rank <- data_vax_counts %>%
+  distinct(jcvi_group, elig_date) %>%
+  arrange(jcvi_group, elig_date) %>%
+  group_by(jcvi_group) %>%
+  mutate(elig_date_rank = factor(rank(elig_date))) %>%
+  ungroup()
+
+# Plot the distribution of covid_vax_disease_1_time across different eligibility dates for the extracted dataset 
+data_vax_counts %>%
+  left_join(data_count_date_rank, by = c("elig_date", "jcvi_group")) %>%
+  ggplot(aes(x = days_between, y = n, color = elig_date_rank)) +
+  geom_line() +
+  facet_wrap(~jcvi_group) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  labs(title = "Distribution of covid_vax_disease_1_date across different eligibility dates",
+       x = "Days between eligibility and first vaccination",
+       y = "Frequency",
+       color = "Eligibility Date")
+
+
+
+
+
+
+
+
+
 
 
